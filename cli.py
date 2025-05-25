@@ -26,14 +26,14 @@ def process_command(command):
     elif command.startswith("MSG"):
         print("MSG-Kommando verarbeitet (PLATZHALTER)")
     elif command.startswith("WHO"):
-        print("WHO-Kommando verarbeitet im KNOWNUSER Format")
+        print("WHO-Kommando verarbeitet im KNOWNUSERS Format")
     elif command.startswith("IMG"):
         print("IMG-Kommando verarbeitet")
     elif command.startswith("LEAVE"):
          print("Bye!")
          sys.exit(0)
     elif command.startswith("HELP"):
-        help()
+        cli_help()
     else:
         print("Unbekanntes Kommando. Mit HELP bekommst du Hilfe.")
 
