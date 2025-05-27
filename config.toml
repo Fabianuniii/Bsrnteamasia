@@ -1,0 +1,6 @@
+# Konfigurationsdatei für den Chat (PROTOTYP)
+
+name = "Michael" # Benutzername im Chat
+port = 12345 # Portnummer für die Netzwerkverbindung (muss einzigartig pro Instanz sein)
+bild_pfad = "./bilder/"  # relativer Pfad wo die Bilder gespeichert werden.
+server_ip = "localhost" # IP-Adresse des Servers. Wir nehmen die IP des eigenen Rechners. (selbst bei mehreren Prozessen kann eine IP verwendet werden)
