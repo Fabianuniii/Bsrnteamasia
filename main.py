@@ -1,7 +1,17 @@
-import subprocess #damit können mehrere prozesse gleichzeitig laufen
+import sys
+from network import Network
+from ui import UI
 
 def main():
-    subprocess.run(["python3", "cli.py"]) #startet die cli in python
+    if len(sys.argv) < 2:
+        print("Benutzung: python main.py <dein_username>")
+        return
+    
+    username = sys.argv[1]
+    
+    network = Network(username)
+    ui = UI(network)
+    ui.start()
 
-if __name__ == "__main__": #sorgt dafür dass main nur einmal ausgeführt wird
+if __name__ == "__main__":
     main()
