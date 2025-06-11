@@ -1,7 +1,7 @@
-import subprocess #damit können mehrere prozesse gleichzeitig laufen
+import subprocess
 
 def main():
-    subprocess.run(["python3", "cli.py"]) #startet die cli in python
+    subprocess.run(["python3", "cli.py"])
 
-if __name__ == "__main__": #sorgt dafür dass main nur einmal ausgeführt wird
+if __name__ == "__main__":
     main()
