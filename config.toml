@@ -1,4 +1,37 @@
 [network]
-broadcast_ip = "255.255.255.255"
-port = 5000
-buffer_size = 1024
+server_ip = "255.255.255.255" 
+whoisport = 4000
+buffer_size = 8192
+
+[storage]
+imagepath = "./bilder/"
+bild_pfad = "./bilder/"
+
+[features]
+autoreply_enabled = false
+autoreply = "Ich bin gerade nicht da. Schicke mir trotzdem eine Nachricht!"
+
+[[users]]
+name = "Michael"
+port = 12345
+handle = "Michael"
+
+[[users]]
+name = "Fabian"
+port = 12346
+handle = "Fabian"
+
+[[users]]
+name = "Can"
+port = 12347
+handle = "Can"
+
+[[users]]
+name = "Jin"
+port = 12348
+handle = "Jin"
+
+[[users]]
+name = "Burim"
+port = 12349
+handle = "Burim"
