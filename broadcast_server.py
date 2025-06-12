@@ -5,7 +5,7 @@ online_users = {}  # name -> port
 def run_broadcast_server(port=15000):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('localhost', port))
-    print(f"[Broadcast-Server] Läuft auf Port {port}")
+    print(f"[Broadcast-Server] Running on port {port}")
     while True:
         data, addr = sock.recvfrom(1024)
         msg = data.decode()
@@ -13,8 +13,8 @@ def run_broadcast_server(port=15000):
             # JOIN|Name|Port
             _, name, user_port = msg.split("|")
             online_users[name] = int(user_port)
-            print(f"[INFO] {name} (Port {user_port}) ist online.")
-            # Sende Liste aller Online-User zurück
+            print(f"[INFO] {name} (Port {user_port}) is now online.")
+            # Send list of all online users back
             reply = ";".join([f"{n}:{p}" for n, p in online_users.items()])
             sock.sendto(reply.encode(), addr)
         elif msg == "GET":

@@ -1,13 +1,8 @@
-# Konfigurationsdatei für den Chat (PROTOTYP)
+image_path = "./images/"
 
-# Feste Pfade die für jeden User übereinstimmen (globale Werte)
-bild_pfad = "./bilder/"
-server_ip = "localhost"
-
-[[users]] #Doppelklammern stehen für mehrere Elemente pro user ohne überschreibung.
+[[users]]
 name = "Michael"
 port = 12345
-
 
 [[users]]
 name = "Fabian"
