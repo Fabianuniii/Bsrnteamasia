@@ -1,155 +1,94 @@
 import sys
 import toml
-import os
-from typing import Optional
 from client import ClientNetwork
 
-class ChatCLI:
-    def __init__(self):
-        self.config = self._load_config()
-        self.network: Optional[ClientNetwork] = None
-        self.current_user: Optional[dict] = None
+with open("config.toml", "r") as f:
+    config = toml.load(f)
 
-    def _load_config(self):
-        try:
-            with open("config.toml", "r") as f:
-                return toml.load(f)
-        except FileNotFoundError:
-            print("[Error] config.toml not found!")
-            sys.exit(1)
+current_user = None
+network = None
 
-    def _select_user(self):
-        users = self.config.get("users", [])
-        if not users:
-            print("No users configured in config.toml")
-            sys.exit(1)
+def cli_help():
+    print("Verfügbare Kommandos:")
+    print(" JOIN           Dem Netzwerk beitreten")
+    print(" MSG [Text]     Sendet Nachricht")
+    print(" IMG [Pfad]     Sendet Bild an alle")
+    print(" LEAVE          Das Netzwerk verlassen")
+    print(" WHO            Nutzerliste ausgeben (nur aktuell Online)")
+    print(" HELP           Zeigt diese Hilfe")
 
-        print("Verfügbare Benutzerkonten:")
-        for i, user in enumerate(users):
-            print(f" {i+1}. {user['name']} (Port: {user['port']})")
-
-        while True:
-            choice = input("Wähle einen Account (Nummer) oder 'ACCOUNTS' zum erneuten Anzeigen: ").strip()
-            
-            if choice.upper() == "ACCOUNTS":
-                self._select_user()
-                return
-                
-            try:
-                idx = int(choice) - 1
-                if 0 <= idx < len(users):
-                    return users[idx]
-                print("Ungültige Auswahl!")
-            except ValueError:
-                print("Bitte eine Nummer eingeben!")
-
-    def _show_help(self):
-        print("\nVerfügbare Befehle:")
-        print(" JOIN           - Dem Netzwerk beitreten")
-        print(" MSG <Nachricht> - Nachricht senden")
-        print(" IMG <Pfad>     - Bild senden")
-        print(" WHO            - Online-Nutzer anzeigen")
-        print(" AWAY           - Abwesenheitsmodus umschalten")
-        print(" LEAVE          - Netzwerk verlassen")
-        print(" HELP           - Diese Hilfe anzeigen")
-        print("")
-
-    def _process_command(self, command: str):
-        if not command:
+def process_command(command):
+    global current_user, network
+    if command.startswith("JOIN"):
+        check = 0
+        while check == 0:
+            print("Tippe ACCOUNTS ein um eine Liste aller verfügbaren Nutzernamen zu bekommen.")
+            username_input = input("Welchen User Account willst du benutzen: ")
+            found = False
+            if username_input == "ACCOUNTS":
+                for user in config["users"]:
+                    print(user["name"])
+            for user in config["users"]:
+                if user["name"].lower() == username_input.lower():
+                    current_user = user
+                    udp_port = user["port"]
+                    tcp_port = udp_port + 10000
+                    bilder_ordner = config["storage"]["bild_pfad"]
+                    srv_port = config["network"]["whoisport"]
+                    network = ClientNetwork(user["name"], udp_port, tcp_port, srv_port=srv_port, bilder_ordner=bilder_ordner)
+                    # Netzwerk beitreten
+                    online_users = network.join_network()
+                    print("Aktuelle Online-User:", online_users)
+                    print(f"Erfolgreich eingeloggt als {user['name']} (UDP: {udp_port}, TCP: {tcp_port})")
+                    found = True
+                    check = 1
+                    break
+            if not found:
+                print("User nicht gefunden. Versuche es erneut mit einem gültigen Namen!")
+    elif command.startswith("MSG"):
+        if current_user is None or network is None:
+            print("Bitte erst JOIN benutzen!")
             return
+        message = command[4:].strip()
+        if not message:
+            print("Bitte gib eine Nachricht nach MSG ein, z.B. MSG Hallo Welt!")
+            return
+        network.send_message(message)
+    elif command.startswith("IMG"):
+        if current_user is None or network is None:
+            print("Bitte erst JOIN benutzen!")
+            return
+        img_path = command[4:].strip()
+        if not img_path:
+            img_path = input("Pfad zur Bilddatei: ").strip()
+        network.send_image(img_path)
+    elif command.startswith("WHO"):
+        if network is None:
+            print("Bitte erst JOIN benutzen!")
+            return
+        online_users = network.get_online_users()
+        print("Online-USER:")
+        for uname, uport in online_users:
+            print(f"- {uname} (Port {uport})")
+    elif command.startswith("LEAVE"):
+        print("Bye!")
+        sys.exit(0)
+    elif command.startswith("HELP"):
+        cli_help()
+    else:
+        print("Unbekanntes Kommando. Mit HELP bekommst du Hilfe.")
 
-        cmd = command.upper().strip()
+def main():
+    print("Hallo!!! Tippen Sie HELP ein um alle Kommandos zu bekommen")
+    while True:
+        try:
+            user_input = input("> ").strip()
+            if not user_input:
+                continue
+            process_command(user_input)
+        except (EOFError, KeyboardInterrupt):
+            print("\nBeende CLI.")
+            break
 
-        if cmd.startswith("JOIN"):
-            if self.network:
-                print("Sie sind bereits im Netzwerk")
-                return
-
-            self.current_user = self._select_user()
-            udp_port = self.current_user["port"]
-            tcp_port = udp_port + 10000
-
-            self.network = ClientNetwork(
-                username=self.current_user["name"],
-                udp_port=udp_port,
-                tcp_port=tcp_port
-            )
-
-            online_users = self.network.join_network()
-            print(f"Angemeldet als {self.current_user['name']}")
-            print(f"UDP-Port: {udp_port}, TCP-Port: {tcp_port}")
-            print("Online-Nutzer:", ", ".join([u[0] for u in online_users]) if online_users else "Keine anderen Nutzer online")
-
-        elif cmd.startswith("MSG"):
-            if not self.network:
-                print("Bitte zuerst JOIN verwenden!")
-                return
-
-            message = command[4:].strip()
-            if not message:
-                print("Bitte eine Nachricht nach MSG eingeben")
-                return
-
-            self.network.send_message(message)
-            print(f"[Sie]: {message}")
-
-        elif cmd.startswith("IMG"):
-            if not self.network:
-                print("Bitte zuerst JOIN verwenden!")
-                return
-
-            path = command[4:].strip()
-            if not path:
-                path = input("Bildpfad eingeben: ").strip()
-
-            if not os.path.isfile(path):
-                print("Datei nicht gefunden!")
-                return
-
-            self.network.send_image(path)
-
-        elif cmd.startswith("WHO"):
-            if not self.network:
-                print("Bitte zuerst JOIN verwenden!")
-                return
-
-            online_users = self.network.get_online_users()
-            if online_users:
-                print("\nOnline-Nutzer:")
-                for name, port in online_users:
-                    print(f" - {name} (Port: {port})")
-                print("")
-            else:
-                print("Keine anderen Nutzer online")
-
-        elif cmd.startswith("AWAY"):
-            if not self.network:
-                print("Bitte zuerst JOIN verwenden!")
-                return
-            self.network.toggle_away_mode()
-
-        elif cmd.startswith("LEAVE"):
-            if self.network:
-                self.network.stop()
-            print("Auf Wiedersehen!")
-            sys.exit(0)
-
-        elif cmd.startswith("HELP"):
-            self._show_help()
-
-        else:
-            print("Unbekannter Befehl. Tippen Sie HELP für verfügbare Befehle")
-
-    def run(self):
-        print("=== SLCP Chat Client ===")
-        print("Tippen Sie HELP für Befehle\n")
-
-        while True:
-            try:
-                command = input("> ").strip()
-                self._process_command(command)
-            except (EOFError, KeyboardInterrupt):
-                print("\nAuf Wiedersehen!")
-                if self.network:
-                    self.network.stop()
-                sys.exit(0)
+if __name__ == "__main__":
+    main()

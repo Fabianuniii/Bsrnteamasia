@@ -1,6 +1,5 @@
 import argparse
 from broadcast_server import BroadcastServer
-from cli import ChatCLI
 
 def main():
     parser = argparse.ArgumentParser(description="SLCP Chat System")
@@ -14,8 +13,8 @@ def main():
         except KeyboardInterrupt:
             server.stop()
     else:
-        cli = ChatCLI()
-        cli.run()
+       from cli import main as cli_main
+       cli_main()
 
 if __name__ == "__main__":
     main()
