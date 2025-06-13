@@ -43,7 +43,7 @@ def process_command(command):
                     found = True
                     check = 1
                     break
-            if not found:
+            if not found and username_input != "ACCOUNTS":
                 print("User nicht gefunden. Versuche es erneut mit einem gültigen Namen!")
     elif command.startswith("MSG"):
         if current_user is None or network is None:
@@ -75,6 +75,8 @@ def process_command(command):
         sys.exit(0)
     elif command.startswith("HELP"):
         cli_help()
+    elif command.startswith("ACCOUNTS"):
+        pass
     else:
         print("Unbekanntes Kommando. Mit HELP bekommst du Hilfe.")
 
