@@ -24,7 +24,7 @@ def process_command(command):
         check = 0
         check2 = 0
         while check2 == 0:
-            acc_check = input("Tippe ACCOUNTS ein um eine Liste aller verfügbaren Nutzernamen zu bekommen. Oder SKIP eingeben fürs Überspringen/n")
+            acc_check = input("Tippe ACCOUNTS ein um eine Liste aller verfügbaren Nutzernamen zu bekommen. Oder SKIP eingeben fürs Überspringen ")
             if acc_check == "ACCOUNTS":
                 for user in config["users"]:
                     print(user["name"])
