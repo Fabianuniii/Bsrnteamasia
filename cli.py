@@ -16,16 +16,19 @@ def cli_help():
     print(" LEAVE          Das Netzwerk verlassen")
     print(" WHO            Nutzerliste ausgeben (nur aktuell Online)")
     print(" HELP           Zeigt diese Hilfe")
-    print(" ACCOUNTS       eine Liste aller verfügbaren Nutzernamen")
+    print(" ACCOUNTS       Zeigt alle Accounts an")
 
 def process_command(command):
     global current_user, network
     if command.startswith("JOIN"):
         check = 0
         while check == 0:
-            print("Welche Account möchten sie verwenden.")
+            print("Tippe ACCOUNTS ein um eine Liste aller verfügbaren Nutzernamen zu bekommen.")
             username_input = input("Welchen User Account willst du benutzen: ")
             found = False
+            if username_input == "ACCOUNTS":
+                for user in config["users"]:
+                    print(user["name"])
             for user in config["users"]:
                 if user["name"].lower() == username_input.lower():
                     current_user = user
@@ -74,8 +77,8 @@ def process_command(command):
     elif command.startswith("HELP"):
         cli_help()
     elif command.startswith("ACCOUNTS"):
-            for user in config["users"]:
-                print(user["name"])
+        for user in config["users"]:
+                    print(user["name"])
     else:
         print("Unbekanntes Kommando. Mit HELP bekommst du Hilfe.")
 
