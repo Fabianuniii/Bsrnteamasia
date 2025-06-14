@@ -22,13 +22,20 @@ def process_command(command):
     global current_user, network
     if command.startswith("JOIN"):
         check = 0
-        while check == 0:
-            print("Tippe ACCOUNTS ein um eine Liste aller verfügbaren Nutzernamen zu bekommen.")
-            username_input = input("Welchen User Account willst du benutzen: ")
-            found = False
-            if username_input == "ACCOUNTS":
+        check2 = 0
+        while check2 == 0:
+            acc_check = input("Tippe ACCOUNTS ein um eine Liste aller verfügbaren Nutzernamen zu bekommen. Oder SKIP eingeben fürs Überspringen/n")
+            if acc_check == "ACCOUNTS":
                 for user in config["users"]:
                     print(user["name"])
+            elif acc_check =="SKIP":
+                check2 = 1
+
+        while check == 0:
+            
+            username_input = input("Welchen User Account willst du benutzen: ")
+            found = False
+            
             for user in config["users"]:
                 if user["name"].lower() == username_input.lower():
                     current_user = user
