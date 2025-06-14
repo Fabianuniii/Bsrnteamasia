@@ -4,7 +4,7 @@ import threading
 class BroadcastServer:
     def __init__(self, port=4000):
         self.port = port
-        self.online_users = {}
+        self.online_users = {}  # {handle: (ip, port)}
         self.running = False
         self.sock = None
 
@@ -20,17 +20,35 @@ class BroadcastServer:
             while self.running:
                 try:
                     data, addr = self.sock.recvfrom(1024)
-                    msg = data.decode()
+                    msg = data.decode().strip()
                     
-                    if msg.startswith("JOIN|"):
-                        _, name, user_port = msg.split("|")
-                        self.online_users[name] = int(user_port)
-                        print(f"[INFO] {name} (Port {user_port}) is now online.")
-                        reply = ";".join([f"{n}:{p}" for n, p in self.online_users.items()])
-                        self.sock.sendto(reply.encode(), addr)
+                    if msg.startswith("JOIN "):
+                        # Format: JOIN <Handle> <Port>
+                        parts = msg.split(" ")
+                        if len(parts) >= 3:
+                            handle = parts[1]
+                            user_port = int(parts[2])
+                            self.online_users[handle] = (addr[0], user_port)
+                            print(f"[INFO] {handle} (IP: {addr[0]}, Port {user_port}) is now online.")
                         
-                    elif msg == "GET":
-                        reply = ";".join([f"{n}:{p}" for n, p in self.online_users.items()])
+                    elif msg.startswith("LEAVE "):
+                        # Format: LEAVE <Handle>
+                        parts = msg.split(" ")
+                        if len(parts) >= 2:
+                            handle = parts[1]
+                            if handle in self.online_users:
+                                del self.online_users[handle]
+                                print(f"[INFO] {handle} has left the chat.")
+                        
+                    elif msg == "WHO":
+                        # Format: KNOWUSERS <Handle1> <IP1> <Port1>, <Handle2> <IP2> <Port2>
+                        if self.online_users:
+                            user_list = []
+                            for handle, (ip, port) in self.online_users.items():
+                                user_list.append(f"{handle} {ip} {port}")
+                            reply = "KNOWUSERS " + ", ".join(user_list) + "\n"
+                        else:
+                            reply = "KNOWUSERS\n"
                         self.sock.sendto(reply.encode(), addr)
                         
                 except Exception as e:

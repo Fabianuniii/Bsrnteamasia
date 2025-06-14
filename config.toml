@@ -1,5 +1,5 @@
 [network]
-server_ip = "255.255.255.255" 
+broadcast_ip = "255.255.255.255" 
 whoisport = 4000
 buffer_size = 8192
 
