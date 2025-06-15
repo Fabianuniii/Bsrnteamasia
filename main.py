@@ -7,14 +7,14 @@ def main():
     args = parser.parse_args()
 
     if args.server:
-        server = BroadcastServer(port=4000)  # Using whoisport from config
+        server = BroadcastServer(port=4000)
         try:
             server.start()
         except KeyboardInterrupt:
-            server.stop()
+            print("Server stopped.")
     else:
-       from cli import main as cli_main
-       cli_main()
+        from cli import main as cli_main
+        cli_main()
 
 if __name__ == "__main__":
     main()
