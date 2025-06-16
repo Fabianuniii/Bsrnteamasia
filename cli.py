@@ -48,8 +48,10 @@ def process_command(command):
                     network = ClientNetwork(user["name"], udp_port, tcp_port, srv_port=srv_port, bilder_ordner=bilder_ordner, autoreply_msg=autoreply_msg)
                     # Netzwerk beitreten
                     online_users = network.join_network()
+                    network.get_online_users()
                     print("Aktuelle Online-User:", online_users)
                     print(f"Erfolgreich eingeloggt als {user['name']} (UDP: {udp_port}, TCP: {tcp_port})")
+                    network.get_online_users() # Automatischer Abruf nach dem JOIN. Zum aktualisieren der Liste.
                     found = True
                     check = 1
                     break
@@ -66,6 +68,7 @@ def process_command(command):
             return
         target_handle = parts[1]
         message = parts[2]
+        network.get_online_users() #Hier zum aktualisieren der Online Liste
         network.send_message(target_handle, message)
         
     elif command.startswith("IMG"):
@@ -104,7 +107,7 @@ def process_command(command):
             print("Bitte erst JOIN benutzen!")
             return
         online_users = network.get_online_users()
-        print("Online-USER:")
+        print("KNOWUSER:")
         for handle, (ip, port) in online_users:
             away_status = " [AFK]" if network.username == handle and network.is_away else ""
             print(f"- {handle} (IP: {ip}, Port: {port}){away_status}")

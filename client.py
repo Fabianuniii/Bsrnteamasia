@@ -34,6 +34,7 @@ class ClientNetwork:
                     msg = data.decode(errors='ignore').strip()
                     
                     if msg.startswith("MSG "):
+                        self.get_online_users()
                         parts = msg.split(" ", 2)
                         if len(parts) >= 3:
                             sender = parts[1]
@@ -65,6 +66,10 @@ class ClientNetwork:
                             handle = parts[1]
                             port = int(parts[2])
                             print(f"\n[INFO] {handle} ist dem Chat beigetreten")
+                            # Automatisch die Userliste neu holen
+                            self.get_online_users()
+                            print(f"[DEBUG] Aktualisierte Userliste nach JOIN: {self.known_users}") #Hier print statement für evtl. zukünftige Debugs
+                            print("[System] User-Liste automatisch aktualisiert.")
                             print("> ", end="", flush=True)
                     
                     elif msg.startswith("LEAVE "):
@@ -202,6 +207,7 @@ class ClientNetwork:
         # JOIN Nachricht senden
         join_msg = f"JOIN {self.username} {self.udp_port}\n"
         sock.sendto(join_msg.encode(), ('255.255.255.255', self.srv_port))
+        sleep(0.2) #UDP langsam, braucht zeit um aufzuholen
         
         # WHO Nachricht senden
         sock.sendto(b"WHO\n", ('255.255.255.255', self.srv_port))
@@ -261,6 +267,7 @@ class ClientNetwork:
         return list(self.known_users.items())
 
     def send_message(self, target_handle, msg):
+        self.get_online_users()
         if target_handle not in self.known_users:
             print(f"User {target_handle} nicht bekannt. Verwende WHO um User-Liste zu aktualisieren.")
             return
