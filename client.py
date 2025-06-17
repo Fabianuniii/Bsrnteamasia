@@ -1,354 +1,256 @@
 import socket
 import threading
-import os
-import random
+import toml
 import sys
-from time import sleep
 import time
+import os
 
-class ClientNetwork:
-    def __init__(self, username, udp_port, tcp_port, srv_port=4000, bilder_ordner="./bilder/", autoreply_msg="Ich bin gerade nicht da. Schicke mir trotzdem eine Nachricht!"):
-        self.username = username
+class Client:
+    def __init__(self, name, host_ip, udp_port, ipc_port, image_ipc_port, broadcast_ip, whois_port):
+        self.name = name
+        self.host_ip = host_ip
         self.udp_port = udp_port
-        self.tcp_port = tcp_port
-        self.srv_port = srv_port
-        self.bilder_ordner = bilder_ordner
-        self.autoreply_msg = autoreply_msg
-        self.is_away = False  # AFK Status
-        self.known_users = {}  # {handle: (ip, port)}
-        self._udp_listener_thread = None
-        self._tcp_server_thread = None
-        self._listening = False
-        self._start_udp_listener()
-        self._start_tcp_server()
+        self.ipc_port = ipc_port
+        self.image_ipc_port = image_ipc_port
+        self.broadcast_ip = broadcast_ip
+        self.whois_port = whois_port
 
-    def _start_udp_listener(self):
-        def udp_listener():
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.bind(('0.0.0.0', self.udp_port))
-            print(f"[Listener] Hört auf UDP-Port {self.udp_port}")
-            
-            while True:
-                try:
-                    data, addr = sock.recvfrom(2048)
-                    msg = data.decode(errors='ignore').strip()
-                    
-                    if msg.startswith("MSG "):
-                        self.get_online_users()
-                        parts = msg.split(" ", 2)
-                        if len(parts) >= 3:
-                            sender = parts[1]
-                            text = parts[2]
-                            if text.startswith('"') and text.endswith('"'):
-                                text = text[1:-1]
-                            print(f"\n[Nachricht von {sender}]: {text}")
-                            print("> ", end="", flush=True)
-                            
-                            # Autoreply senden wenn AWAY
-                            if self.is_away and sender in self.known_users:
-                                self._send_autoreply(sender)
-                    
-                    elif msg.startswith("IMG "):
-                        parts = msg.split(" ")
-                        if len(parts) >= 3:
-                            sender = parts[1]
-                            size = int(parts[2])
-                            print(f"\n[Bild wird empfangen von {sender}] Größe: {size} Bytes")
-                            print("> ", end="", flush=True)
-                            
-                            # Autoreply senden wenn AWAY
-                            if self.is_away and sender in self.known_users:
-                                self._send_autoreply(sender)
-                    
-                    elif msg.startswith("JOIN "):
-                        parts = msg.split(" ")
-                        if len(parts) >= 3:
-                            handle = parts[1]
-                            port = int(parts[2])
-                            print(f"\n[INFO] {handle} ist dem Chat beigetreten")
-                            # Automatisch die Userliste neu holen
-                            self.get_online_users()
-                            print(f"[DEBUG] Aktualisierte Userliste nach JOIN: {self.known_users}") #Hier print statement für evtl. zukünftige Debugs
-                            print("[System] User-Liste automatisch aktualisiert.")
-                            print("> ", end="", flush=True)
-                    
-                    elif msg.startswith("LEAVE "):
-                        parts = msg.split(" ")
-                        if len(parts) >= 2:
-                            handle = parts[1]
-                            print(f"\n[INFO] {handle} hat den Chat verlassen")
-                            print("> ", end="", flush=True)
-                    
-                    else:
-                        print(f"\n[Unbekannte Nachricht]: {msg}")
-                        print("> ", end="", flush=True)
+        self.known_users = {}  # handle -> (ip, port)
+        self.away_message = None
+        self.autoreply = False
+        self.bilder_ordner = "bilder/"
+        os.makedirs(self.bilder_ordner, exist_ok=True)
 
-                except Exception as e:
-                    print(f"\n[Listener-Fehler]: {e}")
-                    sleep(1)  # Bei Fehlern kurz warten
+        self.cli_sockets = []
 
-        if not self._udp_listener_thread:
-            self._udp_listener_thread = threading.Thread(target=udp_listener, daemon=True)
-            self._udp_listener_thread.start()
+        # UDP-Socket für Netzwerkkommunikation (SLCP)
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.sock.bind(("0.0.0.0", self.udp_port))
 
-    def _send_autoreply(self, sender):
-        """Sendet automatische Antwort an Absender"""
-        try:
-            if sender in self.known_users:
-                ip, port = self.known_users[sender]
-                sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                
-                # Autoreply Nachricht formatieren
-                autoreply_text = f"[AUTOREPLY] {self.autoreply_msg}"
-                if " " in autoreply_text:
-                    slcp_msg = f'MSG {self.username} "{autoreply_text}"\n'
-                else:
-                    slcp_msg = f'MSG {self.username} {autoreply_text}\n'
-                
-                sock.sendto(slcp_msg.encode(), (ip, port))
-                sock.close()
-                print(f"\n[AUTOREPLY] Automatische Antwort an {sender} gesendet")
-                print("> ", end="", flush=True)
-        except Exception as e:
-            print(f"\n[Autoreply-Fehler]: {e}")
+        self.start_udp_listener()
+        self.start_ipc_server()
+        self.start_tcp_server()
 
-    def set_away(self, custom_message=None):
-        """Aktiviert den AWAY-Modus"""
-        self.is_away = True
-        if custom_message:
-            self.autoreply_msg = custom_message
-        
-        # AWAY Status an Server broadcasten
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        
-        try:
-            away_msg = f"AWAY {self.username}\n"
-            sock.sendto(away_msg.encode(), ('255.255.255.255', self.srv_port))
-            print(f"[AWAY] Du bist jetzt AFK. Autoreply: '{self.autoreply_msg}'")
-        except Exception as e:
-            print(f"[Fehler beim AWAY setzen]: {e}")
-        finally:
-            sock.close()
+        # Direkt nach Start: JOIN und WHO senden (optional Delay für Robustheit)
+        time.sleep(0.5)
+        self.join_network()
+        time.sleep(0.5)
+        self.get_online_users()  # <-- baut die Peer-Liste sofort beim Start auf
 
-    def set_back(self):
-        """Deaktiviert den AWAY-Modus"""
-        if not self.is_away:
-            print("[INFO] Du warst nicht AFK.")
-            return
-            
-        self.is_away = False
-        
-        # BACK Status an Server broadcasten
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        
-        try:
-            back_msg = f"BACK {self.username}\n"
-            sock.sendto(back_msg.encode(), ('255.255.255.255', self.srv_port))
-            print("[BACK] Du bist wieder online und nicht mehr AFK.")
-        except Exception as e:
-            print(f"[Fehler beim BACK setzen]: {e}")
-        finally:
-            sock.close()
+    def start_udp_listener(self):
+        threading.Thread(target=self._udp_listener_thread, daemon=True).start()
 
-    def _start_tcp_server(self):
-        def tcp_img_server():
-            server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            server_sock.bind(('0.0.0.0', self.tcp_port))
-            server_sock.listen(5)
-            print(f"[IMG-Server] Hört auf TCP-Port {self.tcp_port}")
-            
-            while True:
-                conn, addr = None, None
-                try:
-                    conn, addr = server_sock.accept()
-                    conn.settimeout(30)  # 30 Sekunden Timeout
-                    
-                    # Empfange alle Daten
-                    img_data = b''
-                    while True:
-                        chunk = conn.recv(4096)
-                        if not chunk:
-                            break
-                        img_data += chunk
-                    
-                    if img_data:
-                        os.makedirs(self.bilder_ordner, exist_ok=True)
-                        filename = f"empfangen_{self.username}_{int(time.time())}.jpg"
-                        out_path = os.path.join(self.bilder_ordner, filename)
-                        
-                        with open(out_path, "wb") as imgf:
-                            imgf.write(img_data)
-                        
-                        print(f"\n[Bild empfangen] Gespeichert als {out_path}")
-                        print("> ", end="", flush=True)
+    def _udp_listener_thread(self):
+        while True:
+            try:
+                data, addr = self.sock.recvfrom(4096)
+                msg = data.decode().strip()
+                self.handle_udp_message(msg, addr)
+            except Exception as e:
+                print(f"UDP Listener error: {e}")
 
-                except socket.timeout:
-                    print(f"\n[Timeout] Bildübertragung zu langsam")
-                except Exception as e:
-                    print(f"\n[IMG-Server Fehler]: {e}")
-                finally:
-                    if conn:
-                        try:
-                            conn.close()
-                        except:
-                            pass
+    def handle_udp_message(self, msg, addr):
+        parts = msg.split(" ", 2)
+        if parts[0] == "JOIN" and len(parts) == 3:
+            handle, port = parts[1], int(parts[2])
+            if handle != self.name:
+                self.known_users[handle] = (addr[0], port)
+                self.send_to_cli(f"{handle} joined from {addr[0]}:{port}")
+        elif parts[0] == "AWAY" and len(parts) >= 2:
+            handle = parts[1]
+            self.send_to_cli(f"{handle} is away.")
+        elif parts[0] == "BACK" and len(parts) >= 2:
+            handle = parts[1]
+            self.send_to_cli(f"{handle} is back.")
+        elif parts[0] == "MSG" and len(parts) == 3:
+            sender, text = parts[1], parts[2]
+            self.send_to_cli(f"[{sender}]: {text}")
+            if self.away_message and self.autoreply:
+                self.send_message(sender, f"(Autoreply): {self.away_message}")
+        elif parts[0] == "WHO":
+            self.join_network()
+        elif parts[0] == "KNOWUSERS" and len(parts) == 2:
+            self._parse_knowusers(parts[1])
 
-        if not self._tcp_server_thread:
-            self._tcp_server_thread = threading.Thread(target=tcp_img_server, daemon=True)
-            self._tcp_server_thread.start()
-
-    def join_network(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        
-        # JOIN Nachricht senden
-        join_msg = f"JOIN {self.username} {self.udp_port}\n"
-        sock.sendto(join_msg.encode(), ('255.255.255.255', self.srv_port))
-        sleep(0.2) #UDP langsam, braucht zeit um aufzuholen
-        
-        # WHO Nachricht senden
-        sock.sendto(b"WHO\n", ('255.255.255.255', self.srv_port))
-        sock.settimeout(2)
-        
-        try:
-            data, _ = sock.recvfrom(2048)
-            reply = data.decode().strip()
-            if reply.startswith("KNOWUSERS"):
-                self._parse_knowusers(reply)
-        except socket.timeout:
-            print("[Info] Keine Antwort vom Server erhalten")
-        except Exception as e:
-            print(f"[Discovery-Fehler]: {e}")
-        finally:
-            sock.close()
-        
-        return list(self.known_users.items())
-
-    def _parse_knowusers(self, reply):
-        self.known_users.clear()
-        if reply == "KNOWUSERS":
-            return
-            
-        user_data = reply[10:].strip()
-        if not user_data:
-            return
-            
-        for entry in user_data.split(", "):
-            entry = entry.strip()
-            if entry:
-                parts = entry.split(" ")
-                if len(parts) >= 3:
-                    handle = parts[0]
-                    ip = parts[1]
-                    port = int(parts[2])
+    def _parse_knowusers(self, users_str):
+        users = users_str.split(",")
+        self.known_users = {}
+        new_users = []
+        for user in users:
+            fields = user.strip().split(" ")
+            if len(fields) >= 3:
+                handle, ip, port = fields[0], fields[1], int(fields[2])
+                if handle != self.name:
                     self.known_users[handle] = (ip, port)
+                    new_users.append(f"{handle}@{ip}:{port}")
+        if new_users:
+            self.send_to_cli("Known users updated: " + ", ".join(new_users))
 
     def get_online_users(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.settimeout(2)
-        
+        # Holt die aktuelle Userliste synchron wie im alten Code!
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        s.settimeout(2)
         try:
-            sock.sendto(b"WHO\n", ('255.255.255.255', self.srv_port))
-            data, _ = sock.recvfrom(2048)
+            s.sendto(b"WHO\n", (self.broadcast_ip, self.whois_port))
+            data, _ = s.recvfrom(2048)
             reply = data.decode().strip()
             if reply.startswith("KNOWUSERS"):
-                self._parse_knowusers(reply)
-        except socket.timeout:
-            print("[Info] Keine Antwort vom Server erhalten")
+                users_str = reply[len("KNOWUSERS"):].strip()
+                self._parse_knowusers(users_str)
         except Exception as e:
-            print(f"[Discovery-Fehler]: {e}")
+            self.send_to_cli(f"[Discovery-Fehler]: {e}")
         finally:
-            sock.close()
-        
-        return list(self.known_users.items())
+            s.close()
 
-    def send_message(self, target_handle, msg):
-        self.get_online_users()
-        if target_handle not in self.known_users:
-            print(f"User {target_handle} nicht bekannt. Verwende WHO um User-Liste zu aktualisieren.")
-            return
-        
-        ip, port = self.known_users[target_handle]
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        
-        try:
-            if " " in msg:
-                slcp_msg = f'MSG {self.username} "{msg}"\n'
-            else:
-                slcp_msg = f'MSG {self.username} {msg}\n'
-            
-            sock.sendto(slcp_msg.encode(), (ip, port))
-            print(f"Nachricht an {target_handle} gesendet.")
-        except Exception as e:
-            print(f"[Fehler beim Senden]: {e}")
-        finally:
-            sock.close()
+    def send_to_cli(self, text):
+        for conn in self.cli_sockets[:]:
+            try:
+                conn.sendall((text + "\n").encode())
+            except Exception:
+                self.cli_sockets.remove(conn)
 
-    def send_image(self, target_handle, img_path):
-        if not os.path.isfile(img_path):
-            print("Datei nicht gefunden!")
-            return
-            
-        if target_handle not in self.known_users:
-            print(f"User {target_handle} nicht bekannt. Verwende WHO um User-Liste zu aktualisieren.")
-            return
-        
-        filesize = os.path.getsize(img_path)
-        ip, port = self.known_users[target_handle]
-        
-        # 1. IMG-Nachricht senden
-        sock_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        img_msg = f"IMG {self.username} {filesize}\n"
-        sock_udp.sendto(img_msg.encode(), (ip, port))
-        sock_udp.close()
-        
-        # 2. Bild senden
-        sock_tcp = None
-        try:
-            with open(img_path, "rb") as f:
-                img_data = f.read()
-            
-            tcp_port = port + 10000
-            sock_tcp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock_tcp.settimeout(15)
-            sock_tcp.connect((ip, tcp_port))
-            sock_tcp.sendall(img_data)
-            print(f"Bild an {target_handle} gesendet.")
-        except socket.timeout:
-            print("[Timeout] Verbindung zu langsam")
-        except ConnectionResetError:
-            print("[Warnung] Verbindung abgebrochen - Bild möglicherweise trotzdem angekommen")
-        except Exception as e:
-            print(f"[Fehler beim Bildversand]: {e}")
-        finally:
-            if sock_tcp:
-                try:
-                    sock_tcp.close()
-                except:
-                    pass
+    def start_ipc_server(self):
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind((self.host_ip, self.ipc_port))
+        server.listen()
+        threading.Thread(target=self._ipc_accept_loop, args=(server,), daemon=True).start()
 
-    def leave_network(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        
-        leave_msg = f"LEAVE {self.username}\n"
-        
+    def _ipc_accept_loop(self, server):
+        while True:
+            conn, _ = server.accept()
+            self.cli_sockets.append(conn)
+            threading.Thread(target=self._ipc_handler, args=(conn,), daemon=True).start()
+
+    def _ipc_handler(self, conn):
+        while True:
+            try:
+                data = conn.recv(1024)
+                if not data:
+                    break
+                msg = data.decode().strip()
+                self.handle_cli_command(msg)
+            except Exception:
+                break
+        if conn in self.cli_sockets:
+            self.cli_sockets.remove(conn)
+        conn.close()
+
+    def handle_cli_command(self, msg):
+        parts = msg.split(" ", 2)
+        if parts[0] == "JOIN":
+            self.join_network()
+            time.sleep(0.2)
+            self.get_online_users()
+        elif parts[0] == "MSG" and len(parts) == 3:
+            self.get_online_users()   # <-- hier Peer-Liste immer vor MSG frisch holen!
+            self.send_message(parts[1], parts[2])
+        elif parts[0] == "AWAY":
+            self.away_message = parts[1] if len(parts) == 2 else "I'm away."
+            self.autoreply = True
+            self.broadcast(f"AWAY {self.name}")
+        elif parts[0] == "BACK":
+            self.away_message = None
+            self.autoreply = False
+            self.broadcast(f"BACK {self.name}")
+        elif parts[0] == "IMG" and len(parts) == 3:
+            self.get_online_users()   # <-- vor Senden von Bildern auch Peer-Liste holen!
+            self.send_image(parts[1], parts[2])
+        elif parts[0] == "WHO":
+            self.get_online_users()
+        elif parts[0] == "LEAVE":
+            self.broadcast(f"LEAVE {self.name}")
+
+    def join_network(self):
+        self.broadcast(f"JOIN {self.name} {self.udp_port}")
+
+    def send_message(self, target, text):
+        if target in self.known_users:
+            ip, port = self.known_users[target]
+            msg = f"MSG {self.name} {text}"
+            self.sock.sendto(msg.encode(), (ip, port))
+        else:
+            self.send_to_cli(f"Unbekannter Nutzer: {target}")
+
+    def broadcast(self, message):
+        self.sock.sendto(message.encode(), (self.broadcast_ip, self.whois_port))
+
+    def send_image(self, target, path):
+        if target not in self.known_users:
+            self.send_to_cli(f"Unbekannter Benutzer: {target}")
+            return
         try:
-            # An Server senden
-            sock.sendto(leave_msg.encode(), ('255.255.255.255', self.srv_port))
-            
-            # An alle bekannten Clients senden
-            for handle, (ip, port) in self.known_users.items():
-                try:
-                    sock.sendto(leave_msg.encode(), (ip, port))
-                except:
-                    continue
-                    
-        except Exception as e:
-            print(f"[Fehler beim Verlassen]: {e}")
-        finally:
+            with open(path, "rb") as f:
+                data = f.read()
+            ip, port = self.known_users[target]
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((ip, self.image_ipc_port))
+            sock.sendall(f"IMG {self.name} {os.path.basename(path)} ".encode() + data)
             sock.close()
+        except Exception as e:
+            self.send_to_cli(f"Bild konnte nicht gesendet werden: {e}")
+
+    def start_tcp_server(self):
+        def handler():
+            server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            server.bind((self.host_ip, self.image_ipc_port))
+            server.listen()
+            while True:
+                conn, _ = server.accept()
+                threading.Thread(target=self._handle_incoming_image, args=(conn,), daemon=True).start()
+        threading.Thread(target=handler, daemon=True).start()
+
+    def _handle_incoming_image(self, conn):
+        try:
+            header = conn.recv(1024)
+            if not header:
+                return
+            parts = header.split(b" ", 3)
+            if len(parts) >= 3 and parts[0] == b"IMG":
+                sender = parts[1].decode()
+                filename = parts[2].decode()
+                image_data = conn.recv(1000000)
+                full_path = os.path.join(self.bilder_ordner, "empfangen_" + filename)
+                with open(full_path, "wb") as f:
+                    f.write(image_data)
+                self.send_to_cli(f"[Bild] von {sender} gespeichert als {full_path}")
+        except Exception as e:
+            self.send_to_cli(f"Fehler beim Empfangen eines Bildes: {e}")
+
+def load_config():
+    return toml.load("config.toml")
+
+def find_client_config(config, name):
+    for client in config["users"]:
+        if client["name"] == name:
+            return client
+    raise Exception(f"Keine Konfiguration für {name} gefunden")
+
+def main():
+    if len(sys.argv) < 2:
+        print("Usage: python3 client.py <Name>")
+        sys.exit(1)
+
+    name = sys.argv[1]
+    config = load_config()
+    conf = find_client_config(config, name)
+
+    Client(
+        name=name,
+        host_ip=conf["host_ip"],
+        udp_port=conf["port"],
+        ipc_port=conf["ipc_port"],
+        image_ipc_port=conf.get("image_ipc_port", conf["ipc_port"] + 1),
+        broadcast_ip=config["network"]["broadcast_ip"],
+        whois_port=config["network"]["whoisport"]
+    )
+
+    while True:
+        time.sleep(1)
+
+if __name__ == "__main__":
+    main()

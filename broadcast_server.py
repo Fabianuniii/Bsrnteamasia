@@ -24,30 +24,24 @@ class BroadcastServer:
                     msg = data.decode().strip()
                     
                     if msg.startswith("JOIN "):
-                        # Format: JOIN <Handle> <Port>
                         parts = msg.split(" ")
                         if len(parts) >= 3:
                             handle = parts[1]
                             user_port = int(parts[2])
                             self.online_users[handle] = (addr[0], user_port)
-                            # User ist wieder online, nicht mehr AFK
                             if handle in self.away_users:
                                 self.away_users.remove(handle)
                             print(f"[INFO] {handle} (IP: {addr[0]}, Port {user_port}) is now online.")
-                        
+                    
                     elif msg.startswith("LEAVE "):
-                        # Format: LEAVE <Handle>
                         parts = msg.split(" ")
                         if len(parts) >= 2:
                             handle = parts[1]
-                            if handle in self.online_users:
-                                del self.online_users[handle]
-                            if handle in self.away_users:
-                                self.away_users.remove(handle)
+                            self.online_users.pop(handle, None)
+                            self.away_users.discard(handle)
                             print(f"[INFO] {handle} has left the chat.")
                     
                     elif msg.startswith("AWAY "):
-                        # Format: AWAY <Handle>
                         parts = msg.split(" ")
                         if len(parts) >= 2:
                             handle = parts[1]
@@ -56,16 +50,13 @@ class BroadcastServer:
                                 print(f"[INFO] {handle} is now away (AFK).")
                     
                     elif msg.startswith("BACK "):
-                        # Format: BACK <Handle>
                         parts = msg.split(" ")
                         if len(parts) >= 2:
                             handle = parts[1]
-                            if handle in self.away_users:
-                                self.away_users.remove(handle)
-                                print(f"[INFO] {handle} is back from being away.")
-                        
-                    elif msg == "WHO":
-                        # Format: KNOWUSERS <Handle1> <IP1> <Port1>, <Handle2> <IP2> <Port2>
+                            self.away_users.discard(handle)
+                            print(f"[INFO] {handle} is back from being away.")
+                    
+                    elif msg.startswith("WHO"):
                         if self.online_users:
                             user_list = []
                             for handle, (ip, port) in self.online_users.items():
@@ -75,7 +66,7 @@ class BroadcastServer:
                         else:
                             reply = "KNOWUSERS\n"
                         self.sock.sendto(reply.encode(), addr)
-                        
+                
                 except Exception as e:
                     if self.running:
                         print(f"[Broadcast-Server Error]: {e}")
@@ -93,3 +84,7 @@ def run_broadcast_server():
         server.start()
     except KeyboardInterrupt:
         server.stop()
+
+# 🔽 WICHTIGER EINSTIEGSPUNKT HINZUGEFÜGT
+if __name__ == "__main__":
+    run_broadcast_server()
