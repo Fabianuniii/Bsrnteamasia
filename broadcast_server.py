@@ -27,11 +27,7 @@ class BroadcastServer:
         try:
             self.sock.bind(('0.0.0.0', self.port))
             self.running = True
-<<<<<<< HEAD
-            print(f"[Broadcast-Server] Running on port {self.port}")
-=======
-            print(f"[Broadcast-Server] läuft jetzt auf dem Port: {self.port}")
->>>>>>> 512995f (Sprachlich vereinheitlicht)
+            print(f"[Broadcast-Server] läuft auf dem Port: {self.port}")
 
             while self.running:
                 try:
@@ -47,11 +43,7 @@ class BroadcastServer:
                             self.online_users[handle] = (addr[0], user_port)
                             if handle in self.away_users:
                                 self.away_users.remove(handle)
-<<<<<<< HEAD
-                            print(f"[INFO] {handle} (IP: {addr[0]}, Port {user_port}) is now online.")
-=======
                             print(f"[INFO] {handle} (IP: {addr[0]}, Port {user_port}) ist jetzt online.")
->>>>>>> 512995f (Sprachlich vereinheitlicht)
 
                     elif msg.startswith("LEAVE "):
                         parts = msg.split(" ")
@@ -59,11 +51,7 @@ class BroadcastServer:
                             handle = parts[1]
                             self.online_users.pop(handle, None)
                             self.away_users.discard(handle)
-<<<<<<< HEAD
-                            print(f"[INFO] {handle} has left the chat.")
-=======
                             print(f"[INFO] {handle} hat den Chat verlassen.")
->>>>>>> 512995f (Sprachlich vereinheitlicht)
 
                     elif msg.startswith("AWAY "):
                         parts = msg.split(" ")
@@ -71,22 +59,14 @@ class BroadcastServer:
                             handle = parts[1]
                             if handle in self.online_users:
                                 self.away_users.add(handle)
-<<<<<<< HEAD
-                                print(f"[INFO] {handle} is now away (AFK).")
-=======
-                                print(f"[INFO] {handle} ist jetzt AFK.")
->>>>>>> 512995f (Sprachlich vereinheitlicht)
+                                print(f"[INFO] {handle} ist nun weg (AFK).")
 
                     elif msg.startswith("BACK "):
                         parts = msg.split(" ")
                         if len(parts) >= 2:
                             handle = parts[1]
                             self.away_users.discard(handle)
-<<<<<<< HEAD
-                            print(f"[INFO] {handle} is back from being away.")
-=======
-                            print(f"[INFO] {handle} ist zurück aus dem AFK-Modus")
->>>>>>> 512995f (Sprachlich vereinheitlicht)
+                            print(f"[INFO] {handle} ist wieder zurück.")
 
                     elif msg.startswith("WHO"):
                         if self.online_users:
@@ -105,7 +85,7 @@ class BroadcastServer:
                     if self.running:
                         print(f"[Broadcast-Server Error]: {e}")
         except OSError as e:
-            print(f"[Error] Server konnte nicht gestartet werden: {e}")
+            print(f"[Error] Server kann nicht gestartet werden: {e}")
 
     def stop(self):
         self.running = False

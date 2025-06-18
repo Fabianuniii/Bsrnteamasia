@@ -53,7 +53,7 @@ def main():
     print("📨 Befehle:")
     print("  JOIN                  - Tritt dem Chat bei")
     print("  MSG <Handle> <Nachricht> - Sende Nachricht an bestimmten Nutzer")
-    print("  AWAY <Nachricht>      - Aktiviere Abwesenheitsmodus")
+    print("  AWAY                  - Aktiviere Abwesenheitsmodus")
     print("  BACK                  - Beende Abwesenheitsmodus")
     print("  IMG <Handle> <Pfad>   - Sende ein Bild an einen Nutzer")
     print("  WHO                   - Frage nach allen Nutzern im Netz")
