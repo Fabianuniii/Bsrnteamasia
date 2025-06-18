@@ -23,13 +23,18 @@ def listen_to_client(sock):
             break
 
 def main():
+    # Änderung: Name kann als Argument oder per Eingabe gesetzt werden
     if len(sys.argv) < 2:
-        print("Usage: python3 cli.py <ClientName>")
-        sys.exit(1)
+        client_name = input("Welchen Usernamen möchtest du verwenden? ")
+    else:
+        client_name = sys.argv[1]
 
-    client_name = sys.argv[1]
     config = load_config()
-    conf = find_client_config(config, client_name)
+    try:
+        conf = find_client_config(config, client_name)
+    except Exception as e:
+        print(e)
+        sys.exit(1)
 
     host = conf["host_ip"]
     port = conf["ipc_port"]

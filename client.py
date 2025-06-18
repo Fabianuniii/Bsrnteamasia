@@ -33,11 +33,6 @@ class Client:
         self.start_ipc_server()
         self.start_tcp_server()
 
-        # Direkt nach Start: JOIN und WHO senden (optional Delay für Robustheit)
-        time.sleep(0.5)
-        self.join_network()
-        time.sleep(0.5)
-        self.get_online_users()  # <-- baut die Peer-Liste sofort beim Start auf
 
     def start_udp_listener(self):
         threading.Thread(target=self._udp_listener_thread, daemon=True).start()
@@ -52,6 +47,11 @@ class Client:
                 print(f"UDP Listener error: {e}")
 
     def handle_udp_message(self, msg, addr):
+        # KNOWUSERS IMMER zuerst prüfen!
+        if msg.startswith("KNOWUSERS"):
+            users_str = msg[len("KNOWUSERS"):].strip()
+            self._parse_knowusers(users_str)
+            return
         parts = msg.split(" ", 2)
         if parts[0] == "JOIN" and len(parts) == 3:
             handle, port = parts[1], int(parts[2])
@@ -71,8 +71,6 @@ class Client:
                 self.send_message(sender, f"(Autoreply): {self.away_message}")
         elif parts[0] == "WHO":
             self.join_network()
-        elif parts[0] == "KNOWUSERS" and len(parts) == 2:
-            self._parse_knowusers(parts[1])
 
     def _parse_knowusers(self, users_str):
         users = users_str.split(",")
@@ -85,25 +83,12 @@ class Client:
                 if handle != self.name:
                     self.known_users[handle] = (ip, port)
                     new_users.append(f"{handle}@{ip}:{port}")
-        if new_users:
-            self.send_to_cli("Known users updated: " + ", ".join(new_users))
+        #if new_users:
+         #   self.send_to_cli("Known users updated: " + ", ".join(new_users))
 
     def get_online_users(self):
-        # Holt die aktuelle Userliste synchron wie im alten Code!
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        s.settimeout(2)
-        try:
-            s.sendto(b"WHO\n", (self.broadcast_ip, self.whois_port))
-            data, _ = s.recvfrom(2048)
-            reply = data.decode().strip()
-            if reply.startswith("KNOWUSERS"):
-                users_str = reply[len("KNOWUSERS"):].strip()
-                self._parse_knowusers(users_str)
-        except Exception as e:
-            self.send_to_cli(f"[Discovery-Fehler]: {e}")
-        finally:
-            s.close()
+        self.sock.sendto(b"WHO\n", (self.broadcast_ip, self.whois_port))
+
 
     def send_to_cli(self, text):
         for conn in self.cli_sockets[:]:
@@ -146,7 +131,7 @@ class Client:
             time.sleep(0.2)
             self.get_online_users()
         elif parts[0] == "MSG" and len(parts) == 3:
-            self.get_online_users()   # <-- hier Peer-Liste immer vor MSG frisch holen!
+            self.get_online_users()   # <-- Peer-Liste immer vor MSG frisch holen!
             self.send_message(parts[1], parts[2])
         elif parts[0] == "AWAY":
             self.away_message = parts[1] if len(parts) == 2 else "I'm away."
@@ -157,10 +142,16 @@ class Client:
             self.autoreply = False
             self.broadcast(f"BACK {self.name}")
         elif parts[0] == "IMG" and len(parts) == 3:
-            self.get_online_users()   # <-- vor Senden von Bildern auch Peer-Liste holen!
+            self.get_online_users()
             self.send_image(parts[1], parts[2])
         elif parts[0] == "WHO":
             self.get_online_users()
+            time.sleep(0.2)
+            if self.known_users:
+                userlist = ", ".join([f"{h}@{ip}:{port}" for h, (ip, port) in self.known_users.items()])
+                self.send_to_cli("Aktuell online: " + userlist)
+            else:
+                self.send_to_cli("Niemand außer dir ist online.")
         elif parts[0] == "LEAVE":
             self.broadcast(f"LEAVE {self.name}")
 
@@ -183,12 +174,11 @@ class Client:
         self.sock.sendto(message.encode(), (self.broadcast_ip, self.whois_port))
 
     def _get_image_port_for(self, handle):
-        # Lies die config nochmal aus, alternativ speicher die Ports beim Start
         config = load_config()
         for user in config["users"]:
             if user["name"] == handle or user["handle"] == handle:
                 return user.get("image_ipc_port", user["ipc_port"] + 1)
-        return None  # Fehlerfall
+        return None
 
     def send_image(self, target, path):
         if target == self.name:
@@ -227,7 +217,6 @@ class Client:
 
     def _handle_incoming_image(self, conn):
         try:
-            # Header einlesen (bis 4 Spaces = nach Dateigröße)
             header = b""
             space_count = 0
             while space_count < 4:
@@ -242,9 +231,8 @@ class Client:
                 sender = parts[1].decode()
                 filename = parts[2].decode()
                 filesize = int(parts[3].decode())
-                rest = parts[4]  # Anfang der Bilddaten (kann schon was drin sein!)
+                rest = parts[4]
                 image_data = rest
-                # Jetzt die restlichen Bytes einlesen
                 while len(image_data) < filesize:
                     chunk = conn.recv(min(4096, filesize - len(image_data)))
                     if not chunk:

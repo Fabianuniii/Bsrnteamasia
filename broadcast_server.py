@@ -33,7 +33,7 @@ class BroadcastServer:
                 try:
                     data, addr = self.sock.recvfrom(1024)
                     msg = data.decode().strip()
-                    print(f"[DEBUG] Empfangene Nachricht von {addr}: {msg}")  # Hilfreich für Fehlersuche
+                    
 
                     if msg.startswith("JOIN "):
                         parts = msg.split(" ")
@@ -78,11 +78,8 @@ class BroadcastServer:
                         else:
                             reply = "KNOWUSERS\n"
 
-                        # Dynamisch: Localhost = direkt, LAN = Broadcast
-                        if self.broadcast_ip.startswith("127."):
-                            self.sock.sendto(reply.encode(), addr)
-                        else:
-                            self.sock.sendto(reply.encode(), (self.broadcast_ip, self.port))
+                        # **NEU: Antworte IMMER direkt an den Absender-Port**
+                        self.sock.sendto(reply.encode(), addr)
 
                 except Exception as e:
                     if self.running:

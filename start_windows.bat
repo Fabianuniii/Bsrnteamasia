@@ -14,7 +14,7 @@ start cmd /k python client.py Can
 
 echo.
 echo ✅ Hintergrundprozesse laufen.
-echo 📣 Bitte öffne neue Terminals und führe jeweils aus:
-echo     python cli.py Fabian
-echo     python cli.py Can
+echo 📣 Bitte oeffne neue Terminals und fuehre jeweils aus:
+echo     python cli.py
+echo       und gib an, welcher der folgenden User du bist: Fabian, Michael, Can
 echo.
