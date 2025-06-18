@@ -57,13 +57,13 @@ class Client:
             handle, port = parts[1], int(parts[2])
             if handle != self.name:
                 self.known_users[handle] = (addr[0], port)
-                self.send_to_cli(f"{handle} joined from {addr[0]}:{port}")
+                self.send_to_cli(f"{handle} ist beigetreten von: {addr[0]}:{port}")
         elif parts[0] == "AWAY" and len(parts) >= 2:
             handle = parts[1]
-            self.send_to_cli(f"{handle} is away.")
+            self.send_to_cli(f"{handle} ist jetzt weg (AFK).") 
         elif parts[0] == "BACK" and len(parts) >= 2:
             handle = parts[1]
-            self.send_to_cli(f"{handle} is back.")
+            self.send_to_cli(f"{handle} ist zurück.") 
         elif parts[0] == "MSG" and len(parts) == 3:
             sender, text = parts[1], parts[2]
             self.send_to_cli(f"[{sender}]: {text}")
@@ -134,7 +134,7 @@ class Client:
             self.get_online_users()   # <-- Peer-Liste immer vor MSG frisch holen!
             self.send_message(parts[1], parts[2])
         elif parts[0] == "AWAY":
-            self.away_message = parts[1] if len(parts) == 2 else "I'm away."
+            self.away_message = parts[1] if len(parts) == 2 else "(AUTOREPLY) Ich bin gerade nicht da, aber du kannst mir gerne eine Nachricht hinterlassen." # Autoreply Message hier. Das ist auch nochmal so markiert zum erkennen.
             self.autoreply = True
             self.broadcast(f"AWAY {self.name}")
         elif parts[0] == "BACK":
@@ -149,7 +149,7 @@ class Client:
             time.sleep(0.2)
             if self.known_users:
                 userlist = ", ".join([f"{h}@{ip}:{port}" for h, (ip, port) in self.known_users.items()])
-                self.send_to_cli("Aktuell online: " + userlist)
+                self.send_to_cli("KNOWUSERS " + userlist)
             else:
                 self.send_to_cli("Niemand außer dir ist online.")
         elif parts[0] == "LEAVE":

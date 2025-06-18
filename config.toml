@@ -35,3 +35,22 @@ host_ip = "192.168.2.209"
 port = 12347
 ipc_port = 17347
 image_ipc_port = 18047
+<<<<<<< HEAD
+=======
+
+[[users]]
+name = "Jin"
+handle = "Jin"
+host_ip = "127.0.0.1"
+port = 12348
+ipc_port = 17348
+image_ipc_port = 18048
+
+[[users]]
+name = "Burim"
+handle = "Burim"
+host_ip = "127.0.0.1"
+port = 12349
+ipc_port = 17349
+image_ipc_port = 18049
+>>>>>>> 512995f (Sprachlich vereinheitlicht)
