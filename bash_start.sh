@@ -2,8 +2,8 @@
 
 echo "🔄 Starte Chat-System ..."
 
-# 1. Konfig-Datei aktivieren (wenn mehrere Versionen vorhanden wären)
-# (Dieser Schritt ist aktuell überflüssig und wurde entfernt)
+# 1. Konfigurationsdatei für WSL kopieren
+cp config_wsl.toml config.toml
 
 # 2. Broadcast-Server starten
 echo "🛰️  Starte Broadcast-Server ..."
