@@ -12,6 +12,7 @@ autoreply_enabled = false
 autoreply = "Ich bin gerade nicht da. Schicke mir trotzdem eine Nachricht!"
 
 [[users]]
+id = 1
 name = "Michael"
 handle = "Michael"
 host_ip = "127.0.0.1"
@@ -20,6 +21,7 @@ ipc_port = 17345
 image_ipc_port = 18045
 
 [[users]]
+id = 2
 name = "Fabian"
 handle = "Fabian"
 host_ip = "127.0.0.1"
@@ -28,25 +30,10 @@ ipc_port = 17346
 image_ipc_port = 18046
 
 [[users]]
+id = 3
 name = "Can"
 handle = "Can"
 host_ip = "127.0.0.1"
 port = 12347
 ipc_port = 17347
 image_ipc_port = 18047
-
-[[users]]
-name = "Jin"
-handle = "Jin"
-host_ip = "127.0.0.1"
-port = 12348
-ipc_port = 17348
-image_ipc_port = 18048
-
-[[users]]
-name = "Burim"
-handle = "Burim"
-host_ip = "127.0.0.1"
-port = 12349
-ipc_port = 17349
-image_ipc_port = 18049

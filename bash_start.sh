@@ -9,17 +9,16 @@ cp config_wsl.toml config.toml
 echo "🛰️  Starte Broadcast-Server ..."
 python3 broadcast_server.py &
 
-# 3. Clients starten (aus config.toml: Michael, Fabian, Can)
-echo "👥 Starte Clients ..."
-python3 client.py Michael &
-python3 client.py Fabian &
-python3 client.py Can &
+# 3. Clients starten: Index 2 und 3 aus config.toml
+echo "👥 Starte Clients 2 und 3 ..."
+python3 client.py 2 &
+python3 client.py 3 &
 
 # 4. Hinweis für CLI-Start
 echo ""
 echo "✅ Alle Hintergrundprozesse laufen nun."
-echo "📣 Bitte öffne drei neue Terminals und führe jeweils folgendes aus:"
-echo "    python3 cli.py"
-echo "      → und gib an welcher der folgenden User du bist: Fabian, Michael, Can"
+echo "📣 Bitte öffne zwei neue Terminals und führe jeweils folgendes aus:"
+echo "    python3 cli.py 2"
+echo "    python3 cli.py 3"
 echo ""
 echo "ℹ️  Danach kannst du direkt im CLI Befehle wie 'JOIN', 'MSG', 'AWAY', 'WHO' usw. eingeben."
