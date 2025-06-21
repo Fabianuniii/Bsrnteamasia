@@ -1,5 +1,5 @@
 [network]
-broadcast_ip = "192.168.2.255"
+broadcast_ip = "127.255.255.255"
 whoisport = 4000
 buffer_size = 8192
 
@@ -14,7 +14,7 @@ autoreply = "Ich bin gerade nicht da. Schicke mir trotzdem eine Nachricht!"
 [[users]]
 name = "Michael"
 handle = "Michael"
-host_ip = "192.168.2.205"
+host_ip = "127.0.0.1"
 port = 12345
 ipc_port = 17345
 image_ipc_port = 18045
@@ -22,7 +22,7 @@ image_ipc_port = 18045
 [[users]]
 name = "Fabian"
 handle = "Fabian"
-host_ip = "192.168.2.209"
+host_ip = "127.0.0.1"
 port = 12346
 ipc_port = 17346
 image_ipc_port = 18046
@@ -30,7 +30,7 @@ image_ipc_port = 18046
 [[users]]
 name = "Can"
 handle = "Can"
-host_ip = "192.168.2.209"
+host_ip = "127.0.0.1"
 port = 12347
 ipc_port = 17347
 image_ipc_port = 18047
