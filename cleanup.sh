@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "Alle Chat-zugehÃ¶rigen Prozesse stoppen..."
+echo "Alle Chat-zugehörigen Prozesse stoppen..."
 sudo pkill -f client.py
 sudo pkill -f cli.py
 sudo pkill -f broadcast_server.py

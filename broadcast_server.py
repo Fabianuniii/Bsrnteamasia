@@ -1,3 +1,10 @@
+"""
+@file broadcast_server.py
+@brief Implementierung des Discovery-Servers für das Simple Local Chat Protocol (SLCP).
+
+Dieses Modul stellt den Discovery-Dienst bereit, der Broadcast-Nachrichten (z. B. JOIN, WHO, LEAVE) empfängt und verarbeitet, um die Liste der online-Benutzer zu verwalten und an Clients weiterzugeben.
+"""
+
 import toml
 import socket
 import threading
@@ -14,14 +21,28 @@ except Exception:
     USERS = []
 
 def find_user_idx(ip, port):
-    """Finde den User-Index in USERS anhand von IP und Port (technische Identität)."""
+    """
+    @brief Findet den Benutzerindex anhand von IP und Port.
+    @param ip String, die IP-Adresse des Benutzers.
+    @param port Integer, der Port des Benutzers.
+    @return Integer, der Index des Benutzers in der Konfiguration, oder None, wenn nicht gefunden.
+    """
     for idx, user in enumerate(USERS, 1):
         if user["host_ip"] == ip and user["port"] == port:
             return idx
     return None
 
 class BroadcastServer:
+    """
+    @class BroadcastServer
+    @brief Verwaltet den Discovery-Dienst für SLCP, empfängt und verarbeitet Broadcast-Nachrichten.
+    """
     def __init__(self, port=WHOIS_PORT, broadcast_ip=BROADCAST_IP):
+        """
+        @brief Initialisiert den Broadcast-Server.
+        @param port Integer, der Port für Broadcast-Nachrichten (Standard: WHOIS_PORT).
+        @param broadcast_ip String, die Broadcast-IP-Adresse (Standard: BROADCAST_IP).
+        """
         self.port = port
         self.broadcast_ip = broadcast_ip
         # Jetzt: {(ip, port): {"handle":..., "afk": False}}
@@ -30,6 +51,9 @@ class BroadcastServer:
         self.sock = None
 
     def start(self):
+        """
+        @brief Startet den Broadcast-Server und lauscht auf eingehende Nachrichten.
+        """
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -102,11 +126,17 @@ class BroadcastServer:
             print(f"[Error] Server konnte nicht gestartet werden: {e}")
 
     def stop(self):
+        """
+        @brief Stoppt den Broadcast-Server und schließt den Socket.
+        """
         self.running = False
         if self.sock:
             self.sock.close()
 
 def run_broadcast_server():
+    """
+    @brief Hauptfunktion zum Starten des Broadcast-Servers.
+    """
     server = BroadcastServer()
     try:
         server.start()
