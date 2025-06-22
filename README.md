@@ -1,233 +1,224 @@
-# P2P Chat System – Dual Version (WSL & Windows)
+#  BSRN Chat-System
 
-## Projektüberblick
+Ein dezentrales, textbasiertes Chat-Programm mit Bildübertragung – entwickelt im Rahmen des Projekts *Betriebssysteme und Rechnernetze* (SoSe 2025).
 
-Ein Peer-to-Peer-Chat-System mit Broadcast-Erkennung, Client-Kommunikation über UDP und IPC (CLI ↔ Client) über TCP-Sockets und automatischem WHO-Update.
+##  Funktionen
 
-## Features
-
-- Broadcast-Discovery und Online-Anzeige aller Nutzer
-- CLI und GUI strikt getrennt: Chat läuft als eigener Client-Prozess, die Bedienung erfolgt per CLI (Terminal)
-- Text- und Bildnachrichten an einzelne Nutzer
-- Abwesenheitsmodus mit automatischem Autoreply
-- Handle/Username on-the-fly ändern
-- Plattformübergreifend: Getestet unter Linux/WSL und Windows
-
----
-
-### Architekturkomponenten
-- `broadcast_server.py` – empfängt UDP-Broadcasts (JOIN/AWAY)
-- `client.py` – verwaltet Netzwerkkommunikation & IPC-Verbindung zur CLI
-- `cli.py` – Benutzeroberfläche für Texteingabe, kommuniziert über TCP mit dem zugehörigen Client
-- Konfigurierbar über `config.toml`
-- Starten entweder über `start_windows.bat` für Windows Maschinen oder `bash.sh` für Linux.
+- Peer-to-Peer Architektur (kein zentraler Server)
+- Kommunikation über SLCP (Simple Local Chat Protocol)
+- Versand von **Textnachrichten** und **Bildern**
+- CLI für jeden Nutzer
+- Discovery via UDP Broadcast
+- Direkte Client-Kommunikation via UDP/TCP
+- Konfigurierbar über `.toml`-Dateien
+- Unterstützung für Windows, Linux, WSL
 
 ---
 
-##  Dual-Version Setup
+##  1. Vorbereitung
 
-| Umgebung | Kommunikation | Startmethode         | Konfiguration              |
-|----------|---------------|----------------------|----------------------------|
-| 🐧 WSL     | Localhost (127.0.0.1) + UDP | Bash-Skript (`bash_start.sh`) | `config_wsl.toml` → `config.toml` |
-| 🪟 Windows | 2 Hosts mit echten IPs + UDP | Batch-Datei (`start_windows.bat`) | `config_windows.toml` → `config.toml` |
-
+- Python 3.x installieren (empfohlen: ≥ 3.10)
+- Optional: `toml`-Modul installieren:
+  ```bash
+  pip install toml
+  ```
+- Repository klonen und ins Verzeichnis wechseln:
+  ```bash
+  git clone https://github.com/Fabianuniii1/Bsrnteamasia
+  cd Bsrnteamasia
+  cd Code
+  ```
+  - venv und requirements.txt installieren
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  ```
 ---
 
-### 1. Vorbereitung
+## 2. Start unter WSL / Linux
 
-- Python 3.x installieren (empfohlen: 3.10 oder neuer)
-- Optional: Toml per `pip install toml`
-- Repository klonen und ins Verzeichnis wechseln
-
-```bash
-git clone <https://github.com/Fabianuniii/Bsrnteamasia>
-cd <Name des Wunschverzeichnis>
-
-### 2. Dateirechte für Bash-Skripte setzen (nur unter Linux/WSL)
-Falls `bash_start.sh` oder `cleanup.sh` nicht ausführbar sind, führe folgendes aus:
+### Dateirechte setzen (nur beim ersten Mal):
 
 ```bash
 chmod +x bash_start.sh
 chmod +x cleanup.sh
+```
 
-### 3. Start unter WSL / Linux
+### Starten:
+
 ```bash
 ./bash_start.sh
+```
 
-Das Skript kopiert die passende Config, startet den Broadcast-Server und die Client-Prozesse im Hintergrund.
+Das Skript:
+- kopiert `config_wsl.toml` nach `config.toml`
+- startet den Broadcast-Server und die Clients im Hintergrund
 
-Danach drei neue Terminals öffnen und jeweils
+### Dann pro Nutzer jeweils ein Terminal öffnen und:
+
+```bash
 python3 cli.py 1
 python3 cli.py 2
 python3 cli.py 3
-ausführen.
-Jeder Nutzer steuert seinen eigenen Chat über die CLI.
+```
 
-### 4. Start unter Windows
-Konfiguriere echte IPs in config_windows.toml (siehe Beispiel).
+Jede `cli.py`-Instanz steuert genau **einen Nutzer**.
 
-Kopiere config_windows.toml als config.toml
+---
 
-Starte per Doppelklick auf start_windows.bat
+## 🪟 3. Start unter Windows
 
-Dann jeweils ein Terminal pro Nutzer und CLI wie oben!
+1. Echte IPs in `config_windows.toml` eintragen
+2. Kopiere sie:
+   ```bash
+   copy config_windows.toml config.toml
+   ```
+3. Starte:
+   ```bash
+   start_windows.bat
+   ```
 
-### 5. Beenden und Aufräumen
+Danach öffne pro Nutzer ein Terminal und führe aus:
+
+```bash
+python cli.py 1
+python cli.py 2
+python cli.py 3
+```
+
+---
+
+## 🧹 4. Beenden & Aufräumen
+
+Beende alle Prozesse und Ports:
+
 ```bash
 ./cleanup.sh
+```
 
-## Konfigurationsdateien
+---
 
-Die aktiven Einstellungen stehen immer in config.toml.
-Du kannst zwischen Varianten (config_wsl.toml, config_windows.toml) wechseln,
-indem du die passende Datei als config.toml kopierst.
+## ⚙️ 5. Konfigurationsdateien
 
-Wichtige Parameter:
+Die aktive Konfiguration steht immer in:
 
-[network] – broadcast_ip, whoisport
+```plaintext
+config.toml
+```
 
-[storage] – Bildpfad
+Du kannst Varianten verwenden:
 
-[[users]] – Nutzer (IP, Ports, Handle)
+- `config_wsl.toml` – für WSL
+- `config_windows.toml` – für Windows
 
+Wechsle durch einfaches Kopieren:
 
+```bash
+cp config_wsl.toml config.toml
+```
 
-### Beispielstruktur:
-Beispiel config.toml
-```toml
+### Wichtige Parameter:
 
-[network]
-broadcast_ip = "255.255.255.255"
-whoisport = 33333
+| Sektion     | Beschreibung                                           |
+|-------------|--------------------------------------------------------|
+| `[network]` | `broadcast_ip`, `whoisport`                            |
+| `[storage]` | `imagepath`, `bild_pfad`                               |
+| `[features]`| `autoreply_enabled`, `autoreply`                       |
+| `[[users]]` | Handle, Host-IP, Ports (`port`, `ipc_port`, `image_ipc_port`) |
 
-[storage]
-imagepath = "bilder/"
+---
 
-[[users]]
-name = "Michael"
-handle = "Michael"
-host_ip = "127.0.0.1"
-port = 12345
-ipc_port = 17345
-image_ipc_port = 18045
+## 🧪 6. Unterstützte SLCP-Befehle
 
-[[users]]
-name = "Fabian"
-handle = "Fabian"
-host_ip = "127.0.0.1"
-port = 12346
-ipc_port = 17346
-image_ipc_port = 18046
+| Befehl     | Beschreibung                                     |
+|------------|--------------------------------------------------|
+| `JOIN`     | Anmeldung beim Discovery-Dienst                  |
+| `LEAVE`    | Chat verlassen                                   |
+| `WHO`      | Liste aktiver Nutzer anfordern                   |
+| `MSG`      | Textnachricht an anderen Nutzer senden           |
+| `IMG`      | Bildnachricht an anderen Nutzer senden           |
+| `AWAY`     | Abwesenheitsmodus aktivieren                     |
+| `BACK`     | Abwesenheitsmodus beenden                        |
 
-[[users]]
-name = "Can"
-handle = "Can"
-host_ip = "127.0.0.1"
-port = 12347
-ipc_port = 17347
-image_ipc_port = 18047
+---
 
-Beispiel config_windows.toml
+## 🧠 7. Architektur (Kurzfassung)
 
-```toml
+- **`cli.py`**  
+  Kommandozeilen-Schnittstelle: verarbeitet Eingaben, kommuniziert mit dem Client über TCP
 
-[network]
-broadcast_ip = "192.168.0.255"
-whoisport = 33333
+- **`client.py`**  
+  Netzwerkkommunikation, Message-Passing, Bildübertragung
 
-[storage]
-imagepath = "bilder/"
+- **`broadcast_server.py`**  
+  Discovery-Dienst für Nutzer (JOIN, LEAVE, WHO, KNOWUSERS)
 
-[[users]]
-name = "Michael"
-handle = "Michael"
-host_ip = "192.168.0.10"
-port = 12345
-ipc_port = 17345
-image_ipc_port = 18045
+- **IPC via TCP**  
+  Jeder CLI-Nutzer hat seinen eigenen Port (`ipc_port`)
 
-[[users]]
-name = "Fabian"
-handle = "Fabian"
-host_ip = "192.168.0.11"
-port = 12346
-ipc_port = 17346
-image_ipc_port = 18046
+---
 
-[[users]]
-name = "Can"
-handle = "Can"
-host_ip = "192.168.0.12"
-port = 12347
-ipc_port = 17347
-image_ipc_port = 18047
+## 🗂️ 8. Projektstruktur
 
-Beispiel config_wsl.toml
-```toml
+```plaintext
+├── Code/
+│   ├── client.py
+│   ├── cli.py
+│   ├── broadcast_server.py
+│   ├── bash_start.sh
+│   ├── cleanup.sh
+│   ├── start_windows.bat
+│   ├── config.toml
+│   ├── config_wsl.toml
+│   ├── config_windows.toml
+│   └── requirements.txt
+│
+├── Doku/
+│   ├── BSRN High Level Doku.pdf
+│   ├── Doxygen Dokumentation.pdf
+│   └── .gitignore
+```
 
-[network]
-broadcast_ip = "255.255.255.255"
-whoisport = 33333
+---
 
-[storage]
-imagepath = "bilder/"
+## 📄 9. Dokumentation
 
-[[users]]
-name = "Michael"
-handle = "Michael"
-host_ip = "127.0.0.1"
-port = 12345
-ipc_port = 17345
-image_ipc_port = 18045
+- **BSRN High Level Doku.pdf**  
+  > Architektur, Ziele, Funktionsweise, CLI-Befehle, Herausforderungen
 
-[[users]]
-name = "Fabian"
-handle = "Fabian"
-host_ip = "127.0.0.1"
-port = 12346
-ipc_port = 17346
-image_ipc_port = 18046
+- **Doxygen Dokumentation.pdf**  
+  > Vollständige API-Dokumentation aus dem Quellcode
 
-[[users]]
-name = "Can"
-handle = "Can"
-host_ip = "127.0.0.1"
-port = 12347
-ipc_port = 17347
-image_ipc_port = 18047
+---
 
-### Befehle in der CLI
+## 🎤 10. Präsentation (Hinweise)
 
-| Befehl              | Bedeutung                            |
-| ------------------- | ------------------------------------ |
-| JOIN                | Dem Chat beitreten                   |
-| MSG <Handle> <Text> | Nachricht an User senden             |
-| AWAY \[Nachricht]   | Abwesenheit einschalten (+Autoreply) |
-| BACK                | Zurück aus Abwesenheit               |
-| IMG <Handle> <Pfad> | Bild an Nutzer senden                |
-| WHO                 | Online-Liste anzeigen                |
-| LEAVE               | Chat verlassen                       |
-| HANDLE <Name>       | Eigenen Anzeigenamen/Handle ändern   |
-| AUTOREPLY <Text>    | Autoreply-Text setzen/ändern         |
-| HELP                | Hilfe/alle Befehle anzeigen          |
+- Live-Demo mit `JOIN → WHO → MSG → IMG`
+- Veranschaulichen, dass **kein Server notwendig ist**
+- Technische Highlights:
+  - UDP für Broadcast
+  - TCP für Bilder und IPC
+  - Config-Wechsel für Plattform-Kompatibilität
+- Rollenverteilung im Team beim Vortrag klar zeigen
 
-### Entwickler-Hinweise & Tipps
-Client und CLI sind getrennte Prozesse:
-Erst client.py, dann pro Nutzer eine CLI (cli.py) verbinden.
+---
 
-Werden Skripte nicht ausgeführt?
-Rechte mit chmod +x <Dateiname> setzen.
+## 🧱 11. Abhängigkeiten
 
-Probleme mit Ports oder Firewall?
-UDP/TCP-Ports freigeben! (siehe Config)
+```txt
+toml==0.10.2
+```
 
-### Dateiübersicht
-| Datei                | Zweck                           |
-| -------------------- | ------------------------------- |
-| broadcast\_server.py | Discovery-Server (UDP)          |
-| client.py            | Netzwerk/Chat-Client            |
-| cli.py               | Kommandozeile für User          |
-| config.toml          | Aktive Konfiguration            |
-| bash\_start.sh       | Startskript für WSL/Linux       |
-| start\_windows.bat   | Startskript für Windows         |
-| cleanup.sh           | Alle Prozesse und Ports beenden |
+Installieren mit:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 📬 Kontakt
+
+> Dieses Projekt wurde im Rahmen des Moduls **„Betriebssysteme und Rechnernetze“** an der Frankfurt UAS (SS 2025) entwickelt.
+
