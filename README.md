@@ -38,14 +38,14 @@ Ein dezentrales, textbasiertes Chat-Programm mit Bildübertragung – entwickelt
 
 ## 2. Start unter WSL / Linux
 
-### Dateirechte setzen (nur beim ersten Mal):
+### Dateirechte setzen (Nur beim ersten mal im Terminal eingeben):
 
 ```bash
 chmod +x bash_start.sh
 chmod +x cleanup.sh
 ```
 
-### Starten:
+### Starten (im Terminal eingeben):
 
 ```bash
 ./bash_start.sh
@@ -71,30 +71,31 @@ Jede `cli.py`-Instanz steuert genau **einen Nutzer**.
 
 1. Echte IPs in `config_windows.toml` eintragen
 
-2. Auf den Host A client.py 1 starten und manuell in die 
+2. Auf den Host A client.py 1 über das Terminal starten und manuell in die 
     ```
     start_windows.bat
      ```
     eintragen und danach auf dem Host B die client.py 2 & 3 und es dort manuell eintragen.
 
-3. Starte:
+3. Starte über das Terminal:
    ```bash
    .\start_windows.bat
    ```
 
-Danach öffne pro Nutzer ein Terminal und führe aus:
+Danach öffne pro Nutzer eine cmd und führe aus:
 
 ```bash
-python cli.py 1
-python cli.py 2
-python cli.py 3
+python cli.py 1 (auf Host A)
+python cli.py 2 (auf Host B)
+python cli.py 3 (auf Host B)
 ```
 
 ---
 
 ## 4. Beenden & Aufräumen für WSL
 
-Beende alle Prozesse und Ports:
+Beende alle Prozesse und Ports
+Führe über Terminal aus:
 
 ```bash
 ./cleanup.sh
