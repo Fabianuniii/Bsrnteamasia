@@ -28,7 +28,7 @@ Ein dezentrales, textbasiertes Chat-Programm mit Bildübertragung – entwickelt
   cd Bsrnteamasia
   cd Code
   ```
-  - venv und requirements.txt installieren
+- venv und requirements.txt installieren
   ```bash
   python3 -m venv .venv
   source .venv/bin/activate
@@ -67,16 +67,19 @@ Jede `cli.py`-Instanz steuert genau **einen Nutzer**.
 
 ---
 
-## 🪟 3. Start unter Windows
+## 3. Start unter Windows
 
 1. Echte IPs in `config_windows.toml` eintragen
-2. Kopiere sie:
-   ```bash
-   copy config_windows.toml config.toml
-   ```
+
+2. Auf den Host A client.py 1 starten und manuell in die 
+    ```
+    start_windows.bat
+     ```
+    eintragen und danach auf dem Host B die client.py 2 & 3 und es dort manuell eintragen.
+
 3. Starte:
    ```bash
-   start_windows.bat
+   .\start_windows.bat
    ```
 
 Danach öffne pro Nutzer ein Terminal und führe aus:
@@ -89,7 +92,7 @@ python cli.py 3
 
 ---
 
-## 🧹 4. Beenden & Aufräumen
+## 4. Beenden & Aufräumen für WSL
 
 Beende alle Prozesse und Ports:
 
@@ -99,7 +102,7 @@ Beende alle Prozesse und Ports:
 
 ---
 
-## ⚙️ 5. Konfigurationsdateien
+## 5. Konfigurationsdateien
 
 Die aktive Konfiguration steht immer in:
 
@@ -107,29 +110,23 @@ Die aktive Konfiguration steht immer in:
 config.toml
 ```
 
-Du kannst Varianten verwenden:
+`config_wsl.toml` & `config_windows.toml` wird jeweils in die `config.toml` kopiert,
+je nachdem welches Betriebssystem den Code ausführt.
 
-- `config_wsl.toml` – für WSL
-- `config_windows.toml` – für Windows
-
-Wechsle durch einfaches Kopieren:
-
-```bash
-cp config_wsl.toml config.toml
-```
+---
 
 ### Wichtige Parameter:
 
-| Sektion     | Beschreibung                                           |
-|-------------|--------------------------------------------------------|
-| `[network]` | `broadcast_ip`, `whoisport`                            |
-| `[storage]` | `imagepath`, `bild_pfad`                               |
-| `[features]`| `autoreply_enabled`, `autoreply`                       |
+| Sektion     | Beschreibung                                                  |
+|-------------|---------------------------------------------------------------|
+| `[network]` | `broadcast_ip`, `whoisport`                                   |
+| `[storage]` | `imagepath`, `bild_pfad`                                      |
+| `[features]`| `autoreply_enabled`, `autoreply`                              |
 | `[[users]]` | Handle, Host-IP, Ports (`port`, `ipc_port`, `image_ipc_port`) |
 
 ---
 
-## 🧪 6. Unterstützte SLCP-Befehle
+## 6. Unterstützte SLCP-Befehle
 
 | Befehl     | Beschreibung                                     |
 |------------|--------------------------------------------------|
@@ -140,10 +137,11 @@ cp config_wsl.toml config.toml
 | `IMG`      | Bildnachricht an anderen Nutzer senden           |
 | `AWAY`     | Abwesenheitsmodus aktivieren                     |
 | `BACK`     | Abwesenheitsmodus beenden                        |
-
+| `HANDLE`   | Eigenen Namen ändern                             |
+| `AUTOREPLY`| Automatische Antwort setzen                      |
 ---
 
-## 🧠 7. Architektur (Kurzfassung)
+## 7. Architektur (Kurzfassung)
 
 - **`cli.py`**  
   Kommandozeilen-Schnittstelle: verarbeitet Eingaben, kommuniziert mit dem Client über TCP
@@ -159,7 +157,7 @@ cp config_wsl.toml config.toml
 
 ---
 
-## 🗂️ 8. Projektstruktur
+## 8. Projektstruktur
 
 ```plaintext
 ├── Code/
@@ -182,7 +180,7 @@ cp config_wsl.toml config.toml
 
 ---
 
-## 📄 9. Dokumentation
+## 9. Dokumentation
 
 - **BSRN High Level Doku.pdf**  
   > Architektur, Ziele, Funktionsweise, CLI-Befehle, Herausforderungen
@@ -192,22 +190,10 @@ cp config_wsl.toml config.toml
 
 ---
 
-## 🎤 10. Präsentation (Hinweise)
-
-- Live-Demo mit `JOIN → WHO → MSG → IMG`
-- Veranschaulichen, dass **kein Server notwendig ist**
-- Technische Highlights:
-  - UDP für Broadcast
-  - TCP für Bilder und IPC
-  - Config-Wechsel für Plattform-Kompatibilität
-- Rollenverteilung im Team beim Vortrag klar zeigen
-
----
-
-## 🧱 11. Abhängigkeiten
+## 10. Abhängigkeiten
 
 ```txt
-toml==0.10.2
+toml==0.10.2 
 ```
 
 Installieren mit:
@@ -218,7 +204,10 @@ pip install -r requirements.txt
 
 ---
 
-## 📬 Kontakt
+## Kontakt
 
-> Dieses Projekt wurde im Rahmen des Moduls **„Betriebssysteme und Rechnernetze“** an der Frankfurt UAS (SS 2025) entwickelt.
-
+> Dieses Projekt wurde im Rahmen des Moduls **„Betriebssysteme und Rechnernetze“** an der Frankfurt UAS (SS 2025) entwickelt. 
+Für jegliche Fragen
+``` 
+nguyenmichaelgiahuy@gmail.com
+```
