@@ -10,7 +10,7 @@ echo "Starte Broadcast-Server ..."
 python3 broadcast_server.py &
 
 # 3. Clients starten: Index 1, 2 und 3 aus config.toml
-echo " Starte Clients 2 und 3 ..."
+echo " Starte Clients 1, 2 und 3 ..."
 python3 client.py 1 &
 python3 client.py 2 &
 python3 client.py 3 &
